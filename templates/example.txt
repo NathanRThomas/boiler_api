@@ -1,0 +1,7 @@
+Simple text output
+
+data one ...... {{.DataOne}}
+
+{{if .Includes}}We want to include this list
+{{range .Includes}}{{.}}
+{{end}}{{end}}
