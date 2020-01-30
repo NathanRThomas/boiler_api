@@ -1,17 +1,19 @@
 /*! \file slack.go
- *  \brief Class for handling messaging channels using slack
+ *  \brief Class for communicating with slack messages
  */
 
 package toolz
 
 import (
-    "fmt"
-    "strconv"
-    "encoding/json"
+
+	"github.com/pkg/errors"
+
     "net/http"
-    "bytes"
     "io/ioutil"
-    
+	"context"
+	"encoding/json"
+	"strconv"
+	"bytes"
     )
 
   //-------------------------------------------------------------------------------------------------------------------------//
@@ -24,7 +26,7 @@ const slack_base_url    = "https://slack.com/api/"
  //----- STRUCTS -----------------------------------------------------------------------------------------------------------//
 //-------------------------------------------------------------------------------------------------------------------------//
 
-type slackConfig_t struct {
+type SlackConfig_t struct {
 	Username, Token string
 }
 
@@ -44,29 +46,25 @@ type Slack_c struct {
 
 /*! \brief Handles sending a json body to a url
  */
-func (this *Slack_c) send (url, requestType string, body slack_body_t) (bool) {
-    if AppConfig.ProductionFlag != ProductionType_Production { return false } //only send slack messages on production
+func (this *Slack_c) send (ctx context.Context, url, requestType string, body slack_body_t) error {
+	//if AppConfig.ProductionFlag != ProductionType_Production { return false } //only send slack messages on production
+	config, ok := ctx.Value ("slackConfig").(*SlackConfig_t) // get our config
+	if !ok { return errors.New ("slack config missing from context") }
 
-    body.Username = AppConfig.Slack.Username
-    jsonBody, _ := json.Marshal(body)
+    body.Username = config.Username
+	jsonBody, err := json.Marshal(body)
+	if err != nil { return errors.WithStack (err) }
 
-    req, err := http.NewRequest(requestType, slack_base_url + url, bytes.NewBuffer(jsonBody))
-    if err != nil {
-        ErrChk(fmt.Errorf("FBM genUrl Failed: " + err.Error()))
-        return false
-    }
+    req, err := http.NewRequestWithContext(ctx, requestType, slack_base_url + url, bytes.NewBuffer(jsonBody))
+    if err != nil { return errors.Wrap (err, "FBM genUrl Failed") }
     
     //req.Header.Set("X-Custom-Header", "myvalue")
     req.Header.Set("Content-Type", "application/json")
     req.Header.Set("Content-Length", strconv.Itoa(len(jsonBody)))
-    req.Header.Set("Authorization", "Bearer " + AppConfig.Slack.Token)
+    req.Header.Set("Authorization", "Bearer " + config.Token)
     
-    client := &http.Client{}
-    resp, err := client.Do(req)
-    if err != nil {
-        ErrChk(fmt.Errorf("slack client Failed: " + err.Error()))
-        return false
-    }
+    resp, err := http.DefaultClient.Do(req)
+	if err != nil { return errors.Wrap (err, "slack client Failed") }
     defer resp.Body.Close()
 
     //fmt.Printf("%+v\n", resp)
@@ -74,32 +72,37 @@ func (this *Slack_c) send (url, requestType string, body slack_body_t) (bool) {
     if resp.StatusCode > 299 {
         //fmt.Println("response Status:", resp.Status)
         //fmt.Println("response Headers:", resp.Header)
-        err = ErrChk(fmt.Errorf("slack Client Failed: %d : %s : %s : %s", resp.StatusCode, url, string(jsonBody[:]), string(rBody[:])))
+		return errors.Errorf("slack Client Failed: %d : %s : %s", resp.StatusCode, url, string(rBody[:]))
     }
 
     var resJson struct {
         OK      bool    `json:"ok"`
         Error   string  `json:"error"`
     }
-    ErrChk(json.Unmarshal(rBody, &resJson))
+	err = json.Unmarshal(rBody, &resJson)
+	if err != nil { return errors.Wrap (err, string(rBody)) }
 
-    if err != nil {
-        err = ErrChk(fmt.Errorf("slack response failed : %s : %s", resJson.Error, err.Error()))
-    } else if !resJson.OK {
-        err = ErrChk(fmt.Errorf("slack response failed : %s", resJson.Error))
-    }
-
-    if err == nil {
-        return true
-    }
-    return false
+	if !resJson.OK { return errors.Errorf ("slack response failed: %s", resJson.Error) }
+	return nil // we're good
 }
+
 
   //-------------------------------------------------------------------------------------------------------------------------//
  //----- PUBLIC FUNCTIONS --------------------------------------------------------------------------------------------------//
 //-------------------------------------------------------------------------------------------------------------------------//
 
-func (this *Slack_c) Channel (msg, channelID string) {
-    this.send ("chat.postMessage", "POST", slack_body_t { Channel: channelID, Text: msg })
+func (this *Slack_c) Onboarding (ctx context.Context, msg string) error {
+    return this.send (ctx, "chat.postMessage", "POST", slack_body_t { Channel : "C8048782E", Text : msg })
 }
 
+func (this *Slack_c) Tech (ctx context.Context, msg string) error {
+    return this.send (ctx, "chat.postMessage", "POST", slack_body_t { Channel : "CBZMWA1EJ", Text : msg })
+}
+
+func (this *Slack_c) Error (ctx context.Context, msg string) error {
+    return this.send (ctx, "chat.postMessage", "POST", slack_body_t { Channel : "GK5GV8GG2", Text : msg })
+}
+
+func (this *Slack_c) Plugin (ctx context.Context, msg string) error {
+    return this.send (ctx, "chat.postMessage", "POST", slack_body_t { Channel : "CCFCAUB7Y", Text : msg })
+}
