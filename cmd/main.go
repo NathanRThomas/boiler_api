@@ -1,7 +1,5 @@
 /*! \file main.go
 	\brief Shared defines required across multiple of our cmd apps
-
-	Created 2020-01-29 by NateDogg
 */
 
 package cmd 
@@ -16,6 +14,7 @@ package cmd
 	"github.com/pkg/errors"
 	"github.com/mediocregopher/radix/v3"
 	"github.com/patrickmn/go-cache"
+	"github.com/prometheus/client_golang/prometheus"
 	
 	"fmt"
 	"os"
@@ -35,39 +34,25 @@ package cmd
  //----- DEFINES -----------------------------------------------------------------------------------------------------------//
 //-------------------------------------------------------------------------------------------------------------------------//
 
-const API_ver = "0.1.0"
-
-const ContextTimeout = 55 // seconds to timeout any of our default context's
-const JWT_secret_key	= "doesn't have to be that secret"
+const API_major = "0." // major version for all related builds
 
 // global config object
-type CFG struct {
-	Port, UrlAPI string
-	ProductionLevel, LoggingLevel int
-	Version bool
+var CFG struct {
+	Port string
+	ApiUrl, WebsiteUrl models.ApiString
+	ProductionLevel models.ProductionLevel
+	Version, LocalRun bool
 	Cockroach struct {
 		IP, Database, User string
 		Port int
 	}
 	Redis struct {
-		Cache struct {
-			IP string
-			Port int
-		}
+		IPs []string 
+		Port int
 	}
 	Slack toolz.SlackConfig_t
 	Mailgun toolz.MailgunConfig_t
-	DigitalOcean struct {
-		Key string
-	}
 }
-
-type LogLevel int
-const (
-	LogLevel_none 		LogLevel = iota
-	LogLevel_basic
-	LogLevel_full
-)
 
   //-------------------------------------------------------------------------------------------------------------------------//
  //----- TYPES -------------------------------------------------------------------------------------------------------------//
@@ -81,41 +66,14 @@ type stackTracer interface {
 type App_c struct {
 	InfoLog, ErrorLog  *log.Logger
 	Running bool
-	PRunning *bool	// sorry, this is confusing, this is not a pointer to the Running bool within this struct.  It's used to "pass" informatino to another instance of this class that the service is "stopped" or shutting down
-	ProductionLevel int
-	LoggingLevel	LogLevel
 	WG *sync.WaitGroup
+
+	ApiRequests *prometheus.CounterVec 
 	Redis 		*redis.DB_c
-	DB			*cockroach.DB_c
 	Cache 		*cache.Cache
-	TaskQue chan<- *models.Que_t
-}
+	TaskQue chan *models.Que_t
 
-//----- Public Handler
-func (this *App_c) GetLogs () (*log.Logger, *log.Logger) {
-	return this.InfoLog, this.ErrorLog
-}
-
-func (this *App_c) GetDatabases () (*redis.DB_c, *cockroach.DB_c, *cache.Cache) {
-	return this.Redis, this.DB, this.Cache
-}
-
-func (this *App_c) GetWaitGroup () (*sync.WaitGroup) {
-	return this.WG
-}
-
-func (this *App_c) GetProductionLevel () int {
-	return this.ProductionLevel
-}
-
-func (this *App_c) NewHandler () Handler_c {
-	return Handler_c { 
-		App_c: App_c { PRunning: &this.Running,
-		LoggingLevel: this.LoggingLevel,
-		Redis: this.Redis, 
-		DB: this.DB,
-		},
-	}
+	Users		cockroach.User_c
 }
 
 /*! \brief Pulls out the stack trace error info
@@ -131,36 +89,26 @@ func (this *App_c) StackTrace (err error) {
 	}
 }
 
-type Handler_i interface {
-	GetLogs () (*log.Logger, *log.Logger)
-	GetDatabases () (*redis.DB_c, *cockroach.DB_c, *cache.Cache)
-	GetWaitGroup () (*sync.WaitGroup)
-	GetProductionLevel () int
-}
-
-//----- SHARED
-type shared_c struct {
-	App_c
-
-	slack 		toolz.Slack_c
-	self 		chan<- *models.Que_t
-	
-	users 		cockroach.User_c
-}
-
-
   //-------------------------------------------------------------------------------------------------------------------------//
  //----- FUNCTIONS ---------------------------------------------------------------------------------------------------------//
 //-------------------------------------------------------------------------------------------------------------------------//
 
-func ParseConfig (data interface{}) error {
+func ParseConfig () error {
 	configFile, err := os.Open(os.Getenv("API_CONFIG")) //try the file
+	if err != nil { return errors.WithStack (err) }
 	
-	if err == nil {
-        jsonParser := json.NewDecoder(configFile)
-        err = jsonParser.Decode(data)
+	jsonParser := json.NewDecoder(configFile)
+	err = jsonParser.Decode(&CFG)
+	if err != nil { return errors.WithStack (err) }
+
+	// validate some expected values
+	if !CFG.ApiUrl.Url() {
+		return errors.Errorf ("ApiUrl from config file appears invalid, this shoudl be a url that this service is listening on")
 	}
-	return err
+
+	// validate anything else
+	
+	return nil
 }
 
 func CreateLoggers () (errorLog, infoLog *log.Logger) {
@@ -170,19 +118,20 @@ func CreateLoggers () (errorLog, infoLog *log.Logger) {
 	return
 }
 
-func ConnectCockroach (ip string, port int, database, user string, productionLevel int) (*sql.DB, error) {
+func ConnectCockroach (ip string, port int, database, user string) (*sql.DB, error) {
     sslmode := "sslmode=disable"
-    if productionLevel == models.ProductionType_Production {
+    if CFG.ProductionLevel == models.ProductionLevel_Production {
 		sslmode = fmt.Sprintf("sslmode=verify-full&sslcert=/cockroach-certs/client.%s.crt&sslkey=/cockroach-certs/client.%s.key&sslrootcert=/cockroach-certs/ca.crt",
 			user, user)
 	}
-	var err error
-    sqlDB, err := sql.Open("postgres", fmt.Sprintf("postgres://%s@%s:%d/%s?%s", user, ip, port, database, sslmode))
+	
+	sqlDB, err := sql.Open("postgres", fmt.Sprintf("postgres://%s@%s:%d/%s?%s", user, ip, port, database, sslmode))
+	if err != nil { return nil, errors.WithStack (err) }
 
-    if err == nil {
-		_, err = sqlDB.Exec(`SET TIME ZONE 'UTC'`)   //set our default timezone
-	}
-	return sqlDB, err
+	_, err = sqlDB.Exec(`SET TIME ZONE 'UTC'`)   //set our default timezone
+	if err != nil { return nil, errors.WithStack (err) }
+
+	return sqlDB, cockroach.SetDB (sqlDB) // save this to our global in the database layer
 }
 
 func ConnectRedis (ip string, port int) (*radix.Pool, error) {

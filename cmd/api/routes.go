@@ -5,52 +5,30 @@
 package main
 
 import (
-	"github.com/NathanRThomas/boiler_api/cmd"
-
-	"github.com/urfave/negroni"
-
+	
 	//"fmt"
 	"net/http"
 )
-
-  //-------------------------------------------------------------------------------------------------------------------------//
- //----- STRUCTS -----------------------------------------------------------------------------------------------------------//
-//-------------------------------------------------------------------------------------------------------------------------//
-
-type handler_c struct {
-	cmd.Handler_c
-}
-
-  //-------------------------------------------------------------------------------------------------------------------------//
- //----- MIDDLEWARE --------------------------------------------------------------------------------------------------------//
-//-------------------------------------------------------------------------------------------------------------------------//
-
 
   //-------------------------------------------------------------------------------------------------------------------------//
  //----- ROUTES ------------------------------------------------------------------------------------------------------------//
 //-------------------------------------------------------------------------------------------------------------------------//
 
 func (this *app_c) routes () http.Handler {
-	handler := &handler_c { 
-		Handler_c: this.NewHandler(),
-	}
-	mux := handler.Routes () // get our base mux for handling things
+	mux := this.Routes () // get our base mux for handling things
 
-// Default handler
-	mux.HandleFunc("/", this.defaultHandler)	// just return 404
+	// Default handler
+	std, ddos := this.ApiChain ()	// standard chain that all calls make
 
-// logged in
-	std := handler.ApiChain ()	// standard chain that all calls make
+	loggedIn := std.Append (this.bearerCheck)	// validates the bearer token
 
-	mux.Handle ("/login", std.ThenFunc(this.login)).Methods (http.MethodPost)
 
-	jwtMiddleware := this.GetJWTMiddleware ()
+// user - not logged in
+	mux.Handle("/login", ddos.ThenFunc (this.userLogin)).Methods(http.MethodPut, http.MethodOptions)
 
-	mux.Handle("/info", negroni.New(
-		negroni.HandlerFunc(jwtMiddleware.HandlerWithNext),
-		negroni.Wrap(std.ThenFunc(this.info)),
-	)).Methods (http.MethodGet)
-	
+// user - logged in
+	mux.Handle("/user", loggedIn.ThenFunc (this.userGet)).Methods(http.MethodGet, http.MethodOptions)
+
 	return mux
 }
 

@@ -23,11 +23,12 @@ const (
 //-------------------------------------------------------------------------------------------------------------------------//
 
 type User_t struct {
-	ID UUID `json:",omitempty"`
+	ID UUID
+	Email, Password, Token ApiString
 	Mask UserMask `json:",omitempty"`
 	Created time.Time
 	Attr struct {
-		First, Last, Email string `json:",omitempty"`
+		First, Last string `json:",omitempty"`
 	}
 }
 
@@ -35,3 +36,7 @@ type User_t struct {
  //----- FUNCTIONS ---------------------------------------------------------------------------------------------------------//
 //-------------------------------------------------------------------------------------------------------------------------//
 
+func (this *User_t) SetToken () {
+	this.Token.Set (this.Password.String() + this.Email.String() + salt)
+	this.Token.Set(this.Token.Hash())
+}

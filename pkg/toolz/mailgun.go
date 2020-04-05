@@ -14,9 +14,9 @@ import (
     "regexp"
 	"strings"
 	"context"
+    "time"
     
-    
-    )
+)
 
   //-------------------------------------------------------------------------------------------------------------------------//
  //----- CONSTS ------------------------------------------------------------------------------------------------------------//
@@ -55,13 +55,21 @@ func (this *Mailgun_c) Send (ctx context.Context, from, subject, body, html, cam
 
     if len(from) < 1 { from = mailgun_default_from }
     
-    email := gun.NewMessage(from, subject, body, to...)   //Start the email
+	email := gun.NewMessage(from, subject, body, to...)   //Start the email
+	
+	if len(html) > 0 { 
+		email.SetHtml(html) 
+	} else {
+		email.SetTracking (false) // if it's not html, then we don't want to track it
+	}
     
-    if len(html) > 0 { email.SetHtml(html) }
-    if len(campaign) > 0 { email.AddTag(campaign) }
+	if len(campaign) > 0 { email.AddTag(campaign) }
+	
+	gunCtx, cancel := context.WithTimeout (ctx, time.Second * 20) // give 20 seconds for this task
+	defer cancel()
     
-    _, _, err := gun.Send(ctx, email)   //send the message
-    return errors.Wrap (err, subject)
+	_, _, err := gun.Send(gunCtx, email)   //send the message
+	return errors.Wrap (err, subject)
 }
 
 /*! \brief Does a validate call against the mailgun server

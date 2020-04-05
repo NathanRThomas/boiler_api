@@ -47,7 +47,7 @@ type Slack_c struct {
 /*! \brief Handles sending a json body to a url
  */
 func (this *Slack_c) send (ctx context.Context, url, requestType string, body slack_body_t) error {
-	//if AppConfig.ProductionFlag != ProductionType_Production { return false } //only send slack messages on production
+	//if AppConfig.ProductionFlag != ProductionLevel_Production { return false } //only send slack messages on production
 	config, ok := ctx.Value ("slackConfig").(*SlackConfig_t) // get our config
 	if !ok { return errors.New ("slack config missing from context") }
 

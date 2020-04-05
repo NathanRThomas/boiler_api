@@ -25,7 +25,7 @@ var ErrKeyNotFound = errors.New("key not found or has expired")
 var ErrPingFailed = errors.New("Ping did not Pong")
 
 const MaxPoolSize = 10     //max number of cache threads waiting in the pool
-const defaultCacheTime = 30 	//time in seconds for our default cache to expire
+const defaultCacheTime = 60 	//time in seconds for our default cache to expire
 
   //-------------------------------------------------------------------------------------------------------------------------//
  //----- STRUCTS -----------------------------------------------------------------------------------------------------------//
@@ -158,7 +158,7 @@ func (this *DB_c) Ping () error {
 	if this.DB == nil { return nil } // this is bad
 
 	out := ""
-	if err := this.locErr(this.DB.Do(radix.Cmd(&out, "PING"))); err == nil {
+	if err := this.locErr (this.DB.Do (radix.Cmd(&out, "PING"))); err == nil {
 		if out == "PONG" { return nil }
 		return errors.WithStack (ErrPingFailed)
 	} else {
