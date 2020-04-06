@@ -91,18 +91,6 @@ func (this *Slack_c) send (ctx context.Context, url, requestType string, body sl
  //----- PUBLIC FUNCTIONS --------------------------------------------------------------------------------------------------//
 //-------------------------------------------------------------------------------------------------------------------------//
 
-func (this *Slack_c) Onboarding (ctx context.Context, msg string) error {
-    return this.send (ctx, "chat.postMessage", "POST", slack_body_t { Channel : "C8048782E", Text : msg })
-}
-
-func (this *Slack_c) Tech (ctx context.Context, msg string) error {
-    return this.send (ctx, "chat.postMessage", "POST", slack_body_t { Channel : "CBZMWA1EJ", Text : msg })
-}
-
 func (this *Slack_c) Error (ctx context.Context, msg string) error {
-    return this.send (ctx, "chat.postMessage", "POST", slack_body_t { Channel : "GK5GV8GG2", Text : msg })
-}
-
-func (this *Slack_c) Plugin (ctx context.Context, msg string) error {
-    return this.send (ctx, "chat.postMessage", "POST", slack_body_t { Channel : "CCFCAUB7Y", Text : msg })
+    return this.send (ctx, "chat.postMessage", "POST", slack_body_t { Channel: "GK5GV8GG2", Text: msg })
 }

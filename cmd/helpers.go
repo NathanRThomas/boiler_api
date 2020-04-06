@@ -109,7 +109,7 @@ func (this *App_c) UserError (ctx context.Context, err error, w http.ResponseWri
 		this.ErrorWithMsg (nil, w, http.StatusBadRequest, ApiErrorCode_invalidInputField, err.Error())
 	
 	case models.ErrType_permission:
-		this.ErrorWithMsg (nil, w, http.StatusForbidden, ApiErrorCode_internal, "You don't have access to this organization")
+		this.ErrorWithMsg (nil, w, http.StatusForbidden, ApiErrorCode_internal, "You don't have access to this")
 	
 	case sql.ErrNoRows: // expected 404 error
 		w.WriteHeader(http.StatusNotFound)

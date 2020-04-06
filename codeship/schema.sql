@@ -14,7 +14,7 @@ SET database = test;
 CREATE TABLE users (
 	id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 	token       TEXT NOT NULL,
-	email       TEXT NOT NOT,
+	email       TEXT NOT NULL,
 	password    TEXT NOT NULL,
     username    TEXT NOT NULL,
     attrs 		JSONB NOT NULL DEFAULT '{}',

@@ -28,7 +28,7 @@ type User_t struct {
 	Mask UserMask `json:",omitempty"`
 	Created time.Time
 	Attr struct {
-		First, Last string `json:",omitempty"`
+		First, Last ApiString `json:",omitempty"`
 	}
 }
 

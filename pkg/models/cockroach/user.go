@@ -30,6 +30,7 @@ type User_c struct {
 /*! \brief Verifies that this email is new or returns the exsting info about that user
 */
 func (this *User_c) FromEmail (email models.ApiString, userID models.UUID) (*models.User_t, error) {
+	if !email.Email() { return nil, errors.WithStack (models.ErrType_noIdentifiers) }
 	if !userID.Valid() { userID.Set("00000000-0000-0000-0000-000000000000") }	// otherwise we get an error about it not being a uuid in the query
 
 	user := &models.User_t {}
@@ -45,9 +46,18 @@ func (this *User_c) FromEmail (email models.ApiString, userID models.UUID) (*mod
 /*! \brief Creates a new user or updates an existing
 */
 func (this *User_c) Save (user *models.User_t) error {
+	if !user.Email.Email() { return errors.Wrap (models.ErrType_returnToUser, "Email appears invalid") }
+
 	// verify it's a unique email
 	existing, err := this.FromEmail (user.Email, user.ID)
-	if err == nil && existing != nil { return errors.Wrap (models.ErrType_returnToUser, "Email already in use by someone else") }
+	if existing != nil { return errors.Wrap (models.ErrType_returnToUser, "Email already in use by someone else") }
+
+	switch errors.Cause (err) {
+	case models.ErrType_noIdentifiers, sql.ErrNoRows, nil: // these are all fine
+
+	default:
+		return err // this is a bad one
+	}
 
 	jAttr, err := json.Marshal (user.Attr)
 	if err != nil { return errors.WithStack (err) }
@@ -104,17 +114,12 @@ func (this *User_c) Get (user *models.User_t) error {
 
 /*! \brief Default logging in
 */
-func (this *User_c) Login (email models.ApiString, password models.ApiString) (*models.User_t, error) {
-	user := &models.User_t{}
-	
-	if email.Email() && len(password.String()) > 0 {
+func (this *User_c) Login (user *models.User_t) error {
+	if user.Email.Email() && user.Password.Valid() {
 		err := db.QueryRow(`SELECT id FROM users WHERE password = $2 AND lower(email) = lower($1) AND mask & $3 = 0`,
-							email, password.Hash(), models.UserMask_deleted).Scan(&user.ID)
-		if err != nil { return nil, errors.WithStack (err) }
+							user.Email, user.Password.Hash(), models.UserMask_deleted).Scan(&user.ID)
+		if err != nil { return errors.WithStack (err) }
 	}
 
-	if !user.ID.Valid() { return nil, errors.WithStack (models.ErrType_noIdentifiers) }
-	
-	err := this.Get (user)
-    return user, err
+	return this.Get (user)
 }

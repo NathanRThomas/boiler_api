@@ -24,23 +24,22 @@ import (
 func (this *app_c) userLogin (w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	input := &cmd.SignupUser_t{}
-	err := this.ParseFromBody (ctx, input)
+	user := &models.User_t{}
+	err := this.ParseFromBody (ctx, user)
 	if err != nil {	this.ErrorWithMsg (err, w, http.StatusBadRequest, cmd.ApiErrorCode_parsingRequestBody, ""); return } // bail here
 
-	user, err := this.Users.Login (input.Email, input.Password)
+	err = this.Users.Login (user)
+
 	switch errors.Cause (err) {
-	case models.ErrType_noIdentifiers, sql.ErrNoRows:
-		this.ErrorWithMsg (nil, w, http.StatusUnauthorized, cmd.ApiErrorCode_noIdentifiersForUser, "Email or password invalid")
-		return
-	case nil:
-		// no return, just fall through
-	default:
-		this.ServerError (err, cmd.ApiErrorCode_dbError, w) // this is generically bad
-		return
+	case nil: // it worked
+
+	case sql.ErrNoRows: // no user found
+		err = errors.Wrap (models.ErrType_returnToUser, "Info not found in our system") 
+
+	default: // just pass this error through
 	}
 
-	this.SuccessWithMsg (ctx, w, struct {
+	this.UserError (ctx, err, w, struct { // either it worked or it didn't, pass it out
 		User   *models.User_t
 	} { user })
 }
