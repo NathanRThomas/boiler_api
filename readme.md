@@ -5,18 +5,18 @@ You even get this readme to start with
 
 ### RESTful 
 There are public endpoints, which require no authentication, and there are private ones
-Private calls requires a `user_id` and `user_token` that get authenticated each time
+Private calls requires a Bearer Token `user_id:user_token` that get authenticated each time
 
 ## Getting Started
 
-This is built to use Cockroach DB, Redis, Couchbase, and Cassandra.  To not include any of these just leave their ips out of the config.
+This is built to use Cockroach DB, Redis.
 
 ### Prerequisites
 
 This requires two (2) environmental variables for handling the file location of the config file as well as the templates directory
 
 ```
-API_TEMPLATE=/var/app/src/github.com/NathanRThomas/boiler_api//templates/
+API_TEMPLATE=/var/app/src/github.com/NathanRThomas/boiler_api/templates/
 API_CONFIG=/var/app/config.json
 ```
 
@@ -25,7 +25,7 @@ API_CONFIG=/var/app/config.json
 Build and install the go code
 
 ```
-go build -o $GOPATH/bin/api -i github.com/NathanRThomas/boiler_api//main
+go build -o $GOPATH/bin/api -i github.com/NathanRThomas/boiler_api/cmd/api
 ```
 
 Run the schema against your cockroach database
@@ -71,7 +71,7 @@ WantedBy=multi-user.targetroot
 ```
 
 ## Built With
-GOLang v1.12.1
+GOLang v1.14.1
 
 ## Contributing
 
