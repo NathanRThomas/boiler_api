@@ -40,8 +40,7 @@ func (this *App_c) RandError () string {
 		"Looks like the Fatherboard is burned out", "There's a loose wire between the mouse and keyboard", "That really didn't work",
 		"If at first you don't succeed... give up, this is a deterministic system", "The monkies are out of their cages",
 		"I can't tell for sure but I'm pretty sure this is your fault", "I think there's a gas leak", "Russia is hacking us", 
-		"North Korea is attacking", "We're being hacked by China", "If anyone asks, this is Justin's fault",
-		"If anyone asks, this is Buddy's fault" }
+		"North Korea is attacking", "We're being hacked by China" }
 
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	n := rnd.Intn(len(terms) - 1)
@@ -63,16 +62,10 @@ func (this *App_c) ServerError (err error, code int, w http.ResponseWriter) {
 	this.ErrorWithMsg (err, w, http.StatusInternalServerError, code, this.RandError())
 }
 
-/*! \brief Just a simple wrapper around the successWithMsg fuction for when we just have a message want to return
-*/
-func (this *App_c) ClientSuccess (ctx context.Context, w http.ResponseWriter) {
-	this.SuccessWithMsg (ctx, w, "")
-}
-
 /*! \brief Handles a "successful" api call
 	Commits the transaction log, and writs out our response to the user
 */
-func (this *App_c) SuccessWithMsg (ctx context.Context, w http.ResponseWriter, in interface{}) {
+func (this *App_c) SuccessWithMsg (w http.ResponseWriter, in interface{}) {
 	if in == nil { w.Write([]byte("{}")); return } // we're done
 
 	jOut, err := json.Marshal (in)
@@ -103,7 +96,7 @@ func (this *App_c) ErrorWithMsg (err error, w http.ResponseWriter, httpStatus, c
 
 /*! \brief When we had an issue that may have been caused by user input, this decides which error should be returned to the user
 */
-func (this *App_c) UserError (ctx context.Context, err error, w http.ResponseWriter, success interface{}) {
+func (this *App_c) Respond (err error, w http.ResponseWriter, success interface{}) {
 	switch errors.Cause(err) {
 	case models.ErrType_returnToUser:
 		this.ErrorWithMsg (nil, w, http.StatusBadRequest, ApiErrorCode_invalidInputField, err.Error())
@@ -115,9 +108,10 @@ func (this *App_c) UserError (ctx context.Context, err error, w http.ResponseWri
 		w.WriteHeader(http.StatusNotFound)
 	
 	case nil:
-		this.SuccessWithMsg (ctx, w, success) // everything was good
+		this.SuccessWithMsg (w, success) // everything was good
 	
 	default:
 		this.ServerError (err, ApiErrorCode_internal, w)
 	}
 }
+

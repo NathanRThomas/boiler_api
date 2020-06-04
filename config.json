@@ -1,15 +1,7 @@
 {
-	"ProductionFlag":0, "MachineName":"local", 
-	"Redis": { "IP":"127.0.0.1", "Ports":[6379, 6379] },
+	"ProductionLevel":0, "ApiUrl": "http://localhost/", "WebsiteUrl": "http://localhost/",
+	"Redis": { "IPs":["127.0.0.1"], "Port":6379 },
 	"Cockroach": { "IP":"127.0.0.1","Database":"test", "Port":26257 },
-	"Cassandra": { "Ips":[], "Keyspace":"" },
-	"Couch": { "IP":"", "Username":"", "Password":"" },
-	"Plivo":{"Number":"", "AuthID":"", "Token":""},
-	"Stripe": {"Publish": "pk_test_", "Secret": "sk_test_"},
-	"Google":{"Key":""},
-	"Twilio":{"SID":"","Token":""},
 	"Slack":{"Username":"","Token":""},
-	"DigitalOcean":{"Key":""},
-	"MailGun":{"Domain":"","Key":"","Public":"","From":""},
-	"Paypal":{"Client":"","Secret":"","API":"", "Redirect":"", "Cancel":""}
+	"MailGun":{"Domain":"","Key":"","Public":"","From":""}
 }

@@ -22,8 +22,6 @@ package main
  //----- STRUCTS -----------------------------------------------------------------------------------------------------------//
 //-------------------------------------------------------------------------------------------------------------------------//
 
-const api_ver = cmd.API_major + "0.1" // "final" version of where we're at with just the api part of this
-
 type app_c struct { // re-init this locally so we can add scope to functions we only need here
 	cmd.App_c
 }
@@ -49,7 +47,7 @@ func main() {
 	flag.Parse()
 
 	if cmd.CFG.Version {
-		fmt.Printf("\n API Version: %s\n\n", api_ver)
+		fmt.Printf("\n API Version: %s\n\n", cmd.API_ver)
 		os.Exit(0)
 	}
 

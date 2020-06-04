@@ -34,7 +34,7 @@ package cmd
  //----- DEFINES -----------------------------------------------------------------------------------------------------------//
 //-------------------------------------------------------------------------------------------------------------------------//
 
-const API_major = "0." // major version for all related builds
+const API_ver = "0.1.0" // major version for all related builds
 
 // global config object
 var CFG struct {
@@ -87,6 +87,12 @@ func (this *App_c) StackTrace (err error) {
 			fmt.Printf("%+s:%d\n", f, f)
 		}
 	}
+}
+
+/*! \brief Wrapper around stacktrace so we don't have to create the error each time
+*/
+func (this *App_c) StackRecord (msg string, params ...interface{}) {
+	this.StackTrace (errors.Errorf (msg, params...))
 }
 
   //-------------------------------------------------------------------------------------------------------------------------//

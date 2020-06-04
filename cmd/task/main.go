@@ -24,9 +24,6 @@ package main
  //----- STRUCTS -----------------------------------------------------------------------------------------------------------//
 //-------------------------------------------------------------------------------------------------------------------------//
 
-const api_ver = cmd.API_major + "0.1"
-
-
 type app_c struct {
 	cmd.App_c
 
@@ -55,7 +52,7 @@ func main() {
 	flag.Parse()
 
 	if cmd.CFG.Version {
-		fmt.Printf("\nCLI Version: %s\n\n", api_ver)
+		fmt.Printf("\nCLI Version: %s\n\n", cmd.API_ver)
 		os.Exit(0)
 	}
 

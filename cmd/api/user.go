@@ -39,7 +39,7 @@ func (this *app_c) userLogin (w http.ResponseWriter, r *http.Request) {
 	default: // just pass this error through
 	}
 
-	this.UserError (ctx, err, w, struct { // either it worked or it didn't, pass it out
+	this.Respond (err, w, struct { // either it worked or it didn't, pass it out
 		User   *models.User_t
 	} { user })
 }
@@ -56,5 +56,5 @@ func (this *app_c) userGet (w http.ResponseWriter, r *http.Request) {
 	user, ok := ctx.Value("user").(*models.User_t) // get our current user
 	if !ok { this.ServerError (errors.WithStack (models.ErrType_userMissing), cmd.ApiErrorCode_missingFromContext, w); return } 
 	
-	this.UserError (ctx, nil, w, user) // we're done
+	this.Respond (nil, w, user) // we're done
 }

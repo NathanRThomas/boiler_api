@@ -18,7 +18,8 @@ func (this *app_c) routes () http.Handler {
 	mux := this.Routes () // get our base mux for handling things
 
 	// Default handler
-	std, ddos := this.ApiChain ()	// standard chain that all calls make
+	std := this.ApiChain ()	// standard chain that all calls make
+	ddos := std.Append (this.Ddos)
 
 	loggedIn := std.Append (this.bearerCheck)	// validates the bearer token
 

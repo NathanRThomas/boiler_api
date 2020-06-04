@@ -24,7 +24,7 @@ import (
 )
 
   //-------------------------------------------------------------------------------------------------------------------------//
- //----- MIDDLEWARE --------------------------------------------------------------------------------------------------------//
+ //----- LOCAL MIDDLEWARE --------------------------------------------------------------------------------------------------//
 //-------------------------------------------------------------------------------------------------------------------------//
 
 /*! \brief Update our headers to allow cors from anywhere
@@ -44,22 +44,6 @@ func (this *App_c) cors (next http.Handler) http.Handler {
 		if r.Method == http.MethodOptions {
 			w.Write(nil)
 		} else {
-			next.ServeHTTP(w, r)
-		}
-    })
-}
-
-/*! \brief Our api works using json encoded bodies in the requests, this reads it out for us and puts it into our context
-*/
-func (this *App_c) readBody (next http.Handler) http.Handler {
-    return http.HandlerFunc (func(w http.ResponseWriter, r *http.Request) {
-		body, err := ioutil.ReadAll(r.Body)	//reads the entire body posted by the user
-		if err == nil {
-			ctx := r.Context()
-			ctx = context.WithValue(ctx, "body", body)
-			next.ServeHTTP(w, r.WithContext(ctx))
-		} else {
-			this.StackTrace (errors.WithStack (err))
 			next.ServeHTTP(w, r)
 		}
     })
@@ -126,14 +110,39 @@ func (this *App_c) longRequestCheck (next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 
 		if time.Now().After (startTime.Add(time.Millisecond * 5000)) {
-			this.InfoLog.Printf("Request took %s to complete: %s %s %s\n", time.Now().Sub(startTime), r.Proto, r.Method, r.URL.RequestURI())
+			str := ""
+			if body, ok := r.Context().Value("body").([]byte); ok {
+				str = string(body)
+			}
+			
+			this.InfoLog.Printf("Request took %s to complete: %s %s %s\n%s\n", time.Now().Sub(startTime), r.Proto, r.Method, r.URL.RequestURI(), str)
 		}
     })
 }
 
+/*! \brief Our api works using json encoded bodies in the requests, this reads it out for us and puts it into our context
+*/
+func (this *App_c) readBody (next http.Handler) http.Handler {
+    return http.HandlerFunc (func(w http.ResponseWriter, r *http.Request) {
+		body, err := ioutil.ReadAll(r.Body)	//reads the entire body posted by the user
+		if err == nil {
+			ctx := r.Context()
+			ctx = context.WithValue(ctx, "body", body)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		} else {
+			this.StackTrace (errors.WithStack (err))
+			next.ServeHTTP(w, r)
+		}
+    })
+}
+
+  //-------------------------------------------------------------------------------------------------------------------------//
+ //----- MIDDLEWARE --------------------------------------------------------------------------------------------------------//
+//-------------------------------------------------------------------------------------------------------------------------//
+
 /*! \brief Monitors the ip address of the requester and returns an error if they've had too many requests
 */
-func (this *App_c) ddos (next http.Handler) http.Handler {
+func (this *App_c) Ddos (next http.Handler) http.Handler {
     return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if len(r.RemoteAddr) > 0 {
 			//this.InfoLog.Printf("remote address: %s\n", r.RemoteAddr)
@@ -234,8 +243,6 @@ func (this *App_c) Routes () *mux.Router {
 
 /*! \brief Re-used default starting point for any api endpoint
 */
-func (this *App_c) ApiChain () (alice.Chain, alice.Chain)  {
-	std := alice.New (this.recoverPanic, this.requestTimeout, this.longRequestCheck, this.cors, this.contextConfig, this.readBody)
-	ddos := std.Append (this.ddos)
-	return std, ddos
+func (this *App_c) ApiChain () (alice.Chain)  {
+	return alice.New (this.recoverPanic, this.requestTimeout, this.cors, this.contextConfig, this.readBody, this.longRequestCheck)
 }
