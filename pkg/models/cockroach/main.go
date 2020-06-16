@@ -39,7 +39,7 @@ type toolz_c struct {
 	
 }
 
-func (this *toolz_c) RowsChk (prevErr error, rows *sql.Rows) error {
+func (this *toolz_c) RowsChk (rows *sql.Rows) error {
 	rows.Close() //close it here, no harm in doing it more than once
 	return errors.WithStack (rows.Err())
 }
