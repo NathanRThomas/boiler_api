@@ -87,6 +87,8 @@ func (this *App_c) StackTrace (err error) {
 			fmt.Printf("%+s:%d\n", f, f)
 		}
 	}
+
+	if CFG.LocalRun { os.Exit (1) } // bail after an error for local testing
 }
 
 /*! \brief Wrapper around stacktrace so we don't have to create the error each time
@@ -100,7 +102,10 @@ func (this *App_c) StackRecord (msg string, params ...interface{}) {
 //-------------------------------------------------------------------------------------------------------------------------//
 
 func ParseConfig () error {
-	configFile, err := os.Open(os.Getenv("API_CONFIG")) //try the file
+	file := os.Getenv("API_CONFIG") // try the env variable
+	if len(file) == 0 { file = "./config.json" } // if there's no env variable then use the local config file
+
+	configFile, err := os.Open(file) //try the file
 	if err != nil { return errors.WithStack (err) }
 	
 	jsonParser := json.NewDecoder(configFile)

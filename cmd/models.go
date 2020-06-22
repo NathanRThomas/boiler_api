@@ -27,7 +27,7 @@ const (
 	ApiErrorCode_parsingRequestBody
 	ApiErrorCode_noIdentifiersForUser
 	
-	ApiErrorCode_notEnoughInfoToCreateUser // 5
+	ApiErrorCode_permissions // 5
 	ApiErrorCode_invalidInputField
 	ApiErrorCode_emailExistsAlready
 	ApiErrorCode_endpointDoesNotExist

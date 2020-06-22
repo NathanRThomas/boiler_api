@@ -94,6 +94,16 @@ func (this *App_c) ErrorWithMsg (err error, w http.ResponseWriter, httpStatus, c
 	http.Error (w, string(jOut), httpStatus)	// now give the requester some info
 }
 
+/*! \brief I seemed to be calling this a lot, so i put a wrapper around missing/bad url and query params
+*/
+func (this *App_c) MissingParam (w http.ResponseWriter, msg string, params ...interface{}) {
+	this.ErrorWithMsg (nil, w, http.StatusBadRequest, ApiErrorCode_invalidInputField, msg, params...)
+}
+
+func (this *App_c) Forbidden (w http.ResponseWriter, msg string, params ...interface{}) {
+	this.ErrorWithMsg (nil, w, http.StatusForbidden, ApiErrorCode_permissions, msg, params...)
+}
+
 /*! \brief When we had an issue that may have been caused by user input, this decides which error should be returned to the user
 */
 func (this *App_c) Respond (err error, w http.ResponseWriter, success interface{}) {

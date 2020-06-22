@@ -18,8 +18,8 @@ test:
 
 api:
 	@echo "building api..."
-	@$(GOBUILD) -o $(GOPATH)/bin/api ./cmd/api/
+	@$(GOBUILD) -o ./api ./cmd/api/
 
 task:
 	@echo "building task..."
-	@$(GOBUILD) -o $(GOPATH)/bin/task ./cmd/task/
+	@$(GOBUILD) -o ./task ./cmd/task/

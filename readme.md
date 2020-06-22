@@ -22,6 +22,18 @@ API_CONFIG=/var/app/config.json
 
 ### Installing
 
+Use go mod to track import dependencies
+
+```
+go mod init yoururl.com/project_api
+```
+
+You'll then need to do a find/replace 
+
+```
+find all "github.com/NathanRThomas/" and replace with what you used for the mod init "yoururl.com/project_api/"
+```
+
 Build and install the go code
 
 ```
